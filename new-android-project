@@ -1,0 +1,179 @@
+#!/usr/bin/python3.2
+#+
+# Wrapper around "android create project" which gives nicer
+# defaults for some project settings. Invoke this script as follows:
+#
+#     new-android-project options... path
+#
+# where path is the project directory (will be created if it doesn't exist)
+# and the options (all required unless otherwise stated) are
+#
+#     --target=api-target
+#         specifies the Android API level to build for, e.g.
+#         "--target=android-7" for API level 7 (Android 2.1),
+#         "--targetandroid-8" for API level 8 (Android 2.2).
+#
+#     --main-class=name
+#         the fully-qualified name (with package prefix) of the main
+#         Activity class. E.g. "--main-class=com.example.TestApp.Main".
+#
+#     --main-title=title
+#         the user-visible title text for the main activity. Spaces
+#         and non-letter/digits are allowed. Defaults to the main class name
+#         if omitted.
+#
+#     --project-name=name
+#         the name for the generated .apk file
+#
+# Google's "android" tool forces the title of the main activity
+# to be the same as the class name, but there is no requirement for this.
+# It also creates a deeply-nested hierarchy of source subdirectories
+# corresponding to the levels of the package prefix, but again, there is
+# no need for this.
+#
+# Created by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+#-
+
+import sys
+import os
+import re
+import subprocess
+from xml.sax.saxutils import escape as escape_xml
+import getopt
+
+def shell_escape(arg) :
+    """returns arg suitably escaped for use as a command-line argument
+    to the Shell."""
+    return \
+        re.sub \
+          (
+            r"[\<\>\"\'\|\&\$\#\;\(\)\[\]\`\~\ \\]",
+            lambda match : "\\" + match.group(0),
+            arg
+          )
+          # need to catch anything that might be meaningful to shell
+#end shell_escape
+
+android_cmd = "tools/android"
+  # relative path to android cmd within SDK root
+src_dir = "src"
+  # top-level source subdirectory in a new project
+strings_file = "res/values/strings.xml"
+
+#+
+# Mainline
+#-
+
+android_root = os.environ.get("ANDROID_ROOT")
+if android_root == None :
+    raise getopt.GetoptError("please point ANDROID_ROOT at the root directory of the Android SDK")
+#end if
+if not os.path.isfile(os.path.join(android_root, android_cmd)) :
+    raise getopt.GetoptError("can't find android cmd in ANDROID_ROOT")
+#end if
+
+opts, args = getopt.getopt \
+  (
+    sys.argv[1:],
+    "",
+    ["main-class=", "main-title=", "project-name=", "target=",]
+  )
+if len(args) != 1 :
+    raise getopt.GetoptError("need exactly one arg, the pathname for the project directory")
+#end if
+project_dir = args[0]
+main_class = None
+main_title = None
+project_name = None
+target = None
+for key, val in opts :
+    if key == "--main-class" :
+        if main_class != None :
+            raise getopt.GetoptError("can only specify one --main-class")
+        #end if
+        main_class = val
+    elif key == "--main-title" :
+        if main_title != None :
+            raise getopt.GetoptError("can only specify one --main-title")
+        #end if
+        main_title = val
+    elif key == "--project-name" :
+        if project_name != None :
+            raise getopt.GetoptError("can only specify one --project-name")
+        #end if
+        project_name = val
+    elif key == "--target" :
+        if target != None :
+            raise getopt.GetoptError("can only specify one --target")
+        #end if
+        target = val
+    #end if
+#end for
+if main_class == None or project_name == None or target == None :
+    raise getopt.GetoptError("--main-class, --project-name and --target are required")
+#end if
+package_name, class_name = main_class.rsplit(".", 1)
+if main_title == None :
+    main_title = main_class
+#end if
+
+if os.path.exists(project_dir) and len(os.listdir(project_dir)) != 0 :
+  # check for existence rather than isdir because android tool returns success
+  # after failing to create project if non-directory with that name already exists
+    raise getopt.GetoptError("directory %s exists and is not empty" % project_dir)
+#end if
+
+status = subprocess.Popen \
+  (
+    args =
+        [
+            os.path.join(android_root, android_cmd), "create", "project",
+            "--target", target,
+            "--package", package_name,
+            "--name", project_name,
+            "--activity", class_name,
+            "--path", project_dir,
+        ],
+    close_fds = True,
+    shell = False,
+  ).wait()
+if status != 0 :
+    raise getopt.GetoptError("android create project returned status %d" % status)
+#end if
+
+# move generated source file to top level of src directory
+# and delete all its child subdirectories
+srcroot = os.path.join(project_dir, src_dir)
+for parent, subdirs, subfiles in tuple(os.walk(srcroot)) :
+    for file in subfiles :
+        fromfile = os.path.join(parent, file)
+        tofile = os.path.join(os.path.join(srcroot, file))
+        sys.stderr.write("move %s => %s\n" % (fromfile, tofile)) # debug
+        os.rename(fromfile, tofile)
+    #end for
+#end for
+deletedir = os.path.join(srcroot, "/".join(package_name.split(".")))
+sys.stderr.write("rmdir -p %s\n" % deletedir) # debug
+os.removedirs(deletedir)
+
+new_strings_file = os.path.join(project_dir, strings_file + "-new")
+old_strings_file = os.path.join(project_dir, strings_file)
+new_strings = open(new_strings_file, "w")
+replaced = False
+for line in open(old_strings_file, "r") :
+    match = re.search(r"name=\"app_name\">(.+)</", line)
+    if match != None :
+        line = line[:match.start(1)] + escape_xml(main_title) + line[match.end(1):]
+        replaced = True
+    #end if
+    new_strings.write(line)
+#end for
+new_strings.flush()
+new_strings.close()
+if not replaced :
+    os.unlink(new_strings_file)
+    raise getopt.GetoptError("app_name string not found in %s" % old_strings_file)
+#end if
+sys.stderr.write("replace %s => %s\n" % (new_strings_file, old_strings_file)) # debug
+os.rename(new_strings_file, old_strings_file)
+
