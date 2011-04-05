@@ -41,19 +41,6 @@ import subprocess
 from xml.sax.saxutils import escape as escape_xml
 import getopt
 
-def shell_escape(arg) :
-    """returns arg suitably escaped for use as a command-line argument
-    to the Shell."""
-    return \
-        re.sub \
-          (
-            r"[\<\>\"\'\|\&\$\#\;\(\)\[\]\`\~\ \\]",
-            lambda match : "\\" + match.group(0),
-            arg
-          )
-          # need to catch anything that might be meaningful to shell
-#end shell_escape
-
 android_cmd = "tools/android"
   # relative path to android cmd within SDK root
 src_dir = "src"
