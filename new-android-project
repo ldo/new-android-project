@@ -31,6 +31,9 @@
 # corresponding to the levels of the package prefix, but again, there is
 # no need for this.
 #
+# The script also creates a .gitignore to prevent unneeded stuff going
+# into version control.
+#
 # Created by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #-
 
@@ -164,3 +167,9 @@ if not replaced :
 sys.stderr.write("replace %s => %s\n" % (new_strings_file, old_strings_file)) # debug
 os.rename(new_strings_file, old_strings_file)
 
+# generate a .gitignore to avoid putting build-generated and Google-recommended files
+# under version control
+gitignore = open(os.path.join(project_dir, ".gitignore"), "w")
+gitignore.write("/bin/\n")
+gitignore.write("/gen/\n")
+gitignore.write("/local.properties\n")
