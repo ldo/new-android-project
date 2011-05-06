@@ -1,7 +1,13 @@
 #!/usr/bin/python3.2
 #+
 # Wrapper around "android create project" which gives nicer
-# defaults for some project settings. Invoke this script as follows:
+# defaults for some project settings. First of all, define the
+# ANDROID_ROOT environment variable to point to the top-level directory
+# where you installed the Android SDK. E.g.
+#
+#     export ANDROID_ROOT=/path/to/android-sdk-linux_x86
+#
+# Then invoke this script as follows:
 #
 #     new-android-project options... path
 #
@@ -11,7 +17,7 @@
 #     --target=api-target
 #         specifies the Android API level to build for, e.g.
 #         "--target=android-7" for API level 7 (Android 2.1),
-#         "--targetandroid-8" for API level 8 (Android 2.2).
+#         "--target=android-8" for API level 8 (Android 2.2).
 #
 #     --main-class=name
 #         the fully-qualified name (with package prefix) of the main
@@ -23,7 +29,7 @@
 #         if omitted.
 #
 #     --project-name=name
-#         the name for the generated .apk file
+#         the name for the generated .apk file.
 #
 # Google's "android" tool forces the title of the main activity
 # to be the same as the class name, but there is no requirement for this.
