@@ -47,6 +47,7 @@ import sys
 import os
 import re
 import subprocess
+import errno
 from xml.sax.saxutils import escape as escape_xml
 import getopt
 
@@ -55,6 +56,73 @@ android_cmd = "tools/android"
 src_dir = "src"
   # top-level source subdirectory in a new project
 strings_file = "res/values/strings.xml"
+
+class FileReplacer :
+    """context manager to handle modifications to files."""
+
+    def __init__(self, filename, description) :
+        self.old_filename = filename
+        self.new_filename = filename + "-new"
+        self.description = description
+        self.newfile = None
+        self.replaced = False
+    #end _init__
+
+    def open_new(self) :
+        """opens the new output file under a temporary name. Call this
+        exactly once."""
+        self.newfile = open(self.new_filename, "w")
+        return self.newfile
+    #end open_new
+
+    def open_old(self) :
+        """opens the old file for reading."""
+        return open(self.old_filename, "r")
+    #end open_old
+
+    def __enter__(self) :
+        return self
+    #end __enter__
+
+    def set_replaced(self) :
+        """marks that a replacement has successfully occurred. Must
+        be called at least once."""
+        self.replaced = True
+    #end set_replaced
+
+    def close(self) :
+        """closes the new output file and replaces the old file. Call
+        this exactly one some point after open_new. Dies if set_replaced
+        was not called."""
+        self.newfile.flush()
+        self.newfile.close()
+        self.newfile = None
+        if not self.replaced :
+            raise getopt.GetoptError \
+              (
+                "%s not found in %s" % (self.description, self.old_filename)
+              )
+        #end if
+        sys.stderr.write("replace %s => %s\n" % (self.new_filename, self.old_filename)) # debug
+        os.rename(self.new_filename, self.old_filename)
+    #end close
+
+    def __exit__(self, exception_type, exception_value, traceback) :
+        if exception_type != None :
+            if self.newfile != None :
+                self.newfile.close()
+                try :
+                    os.unlink(self.new_filename)
+                except OSError as Failed :
+                    if Failed.errno != errno.ENOENT :
+                        raise
+                    #end if
+                #end try
+            #end if
+        #end if
+    #end __exit__
+
+#end FileReplacer
 
 #+
 # Mainline
@@ -152,26 +220,22 @@ deletedir = os.path.join(srcroot, "/".join(package_name.split(".")))
 sys.stderr.write("rmdir -p %s\n" % deletedir) # debug
 os.removedirs(deletedir)
 
-new_strings_file = os.path.join(project_dir, strings_file + "-new")
-old_strings_file = os.path.join(project_dir, strings_file)
-new_strings = open(new_strings_file, "w")
-replaced = False
-for line in open(old_strings_file, "r") :
-    match = re.search(r"name=\"app_name\">(.+)</", line)
-    if match != None :
-        line = line[:match.start(1)] + escape_xml(main_title) + line[match.end(1):]
-        replaced = True
-    #end if
-    new_strings.write(line)
-#end for
-new_strings.flush()
-new_strings.close()
-if not replaced :
-    os.unlink(new_strings_file)
-    raise getopt.GetoptError("app_name string not found in %s" % old_strings_file)
-#end if
-sys.stderr.write("replace %s => %s\n" % (new_strings_file, old_strings_file)) # debug
-os.rename(new_strings_file, old_strings_file)
+with \
+    FileReplacer(os.path.join(project_dir, strings_file), "app_name string") \
+as \
+    strings_file \
+:
+    new_strings = strings_file.open_new()
+    for line in strings_file.open_old() :
+        match = re.search(r"name=\"app_name\">(.+)</", line)
+        if match != None :
+            line = line[:match.start(1)] + escape_xml(main_title) + line[match.end(1):]
+            strings_file.set_replaced()
+        #end if
+        new_strings.write(line)
+    #end for
+    strings_file.close()
+#end with
 
 # generate a .gitignore to avoid putting build-generated and Google-recommended files
 # under version control
