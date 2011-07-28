@@ -29,8 +29,8 @@
 #         if omitted.
 #
 #     --ndk
-#         if specified, then Git exclusions will be added for object
-#         files produced by NDK builds.
+#         (optional) if specified, then Git exclusions will be added for
+#         object files produced by NDK builds.
 #
 #     --project-name=name
 #         the name for the generated .apk file.
