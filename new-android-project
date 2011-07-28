@@ -39,10 +39,11 @@
 #
 #     --custombuild
 #         (optional) if specified, then build.xml will be customized
-#         for easier one-step package signing and installation. If
-#         specified together with --ndk, then “ant compile” will also
-#         automatically build the native code, and “ant clean” will
-#         also automatically get rid of generated native code.
+#         for easier one-step package signing (with “ant signed”) and
+#         installation (with “ant install”). If specified together with
+#         --ndk, then “ant compile” will also automatically build the
+#         native code, and “ant clean” will also automatically get rid
+#         of generated native code.
 #
 # Google's "android" tool forces the title of the main activity
 # to be the same as the class name, but there is no requirement for this.
@@ -53,6 +54,18 @@
 # The script also puts a uses-sdk tag with a minSdkVersion tag corresponding
 # to the target API level into the manifest, and creates a .gitignore to
 # prevent unneeded stuff going into version control.
+#
+# The --custombuild option requires that the parent directory contain
+# a keystore.properties file. Its contents look like this:
+#
+#     keystore.path=/home/ldo/my.keystore
+#     keystore.alias=my-key
+#     keystore.password=please
+#
+# where keystore.path is the path to your keystore file, keystore.alias
+# is the name (alias) of the key in the keystore to use, and keystore.password
+# the password for accessing that key. This file is symlinked into the project
+# directory to avoid keeping multiple copies of it around.
 #
 # Created by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #-
