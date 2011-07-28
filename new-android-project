@@ -111,14 +111,14 @@ class FileReplacer :
         if exception_type != None :
             if self.newfile != None :
                 self.newfile.close()
-                try :
-                    os.unlink(self.new_filename)
-                except OSError as Failed :
-                    if Failed.errno != errno.ENOENT :
-                        raise
-                    #end if
-                #end try
             #end if
+            try :
+                os.unlink(self.new_filename)
+            except OSError as Failed :
+                if Failed.errno != errno.ENOENT :
+                    raise
+                #end if
+            #end try
         #end if
     #end __exit__
 
