@@ -269,8 +269,16 @@ else :
 # generate a .gitignore to avoid putting build-generated and Google-recommended files
 # under version control
 gitignore = open(os.path.join(project_dir, ".gitignore"), "w")
-gitignore.write("/bin/\n")
-gitignore.write("/gen/\n")
-gitignore.write("/local.properties\n")
+for \
+    exclude \
+in \
+    (
+        "/bin",
+        "/gen",
+        "/local.properties",
+    ) \
+:
+    gitignore.write(exclude + "\n")
+#end for
 gitignore.flush()
 gitignore.close()
