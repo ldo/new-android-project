@@ -70,21 +70,19 @@ class FileReplacer :
         self.replaced = False
     #end _init__
 
-    def open_new(self) :
-        """opens the new output file under a temporary name. Call this
-        exactly once."""
-        self.newfile = open(self.new_filename, "w")
-        return self.newfile
-    #end open_new
-
     def open_old(self) :
         """opens the old file for reading."""
         return open(self.old_filename, "r")
     #end open_old
 
     def __enter__(self) :
+        self.newfile = open(self.new_filename, "w")
         return self
     #end __enter__
+
+    def write(self, data) :
+        self.newfile.write(data)
+    #end def
 
     def set_replaced(self) :
         """marks that a replacement has successfully occurred. Must
@@ -94,8 +92,8 @@ class FileReplacer :
 
     def close(self) :
         """closes the new output file and replaces the old file. Call
-        this exactly one some point after open_new. Dies if set_replaced
-        was not called."""
+        this at the end of processing of the file contents. Dies if
+        set_replaced was not called."""
         self.newfile.flush()
         self.newfile.close()
         self.newfile = None
@@ -227,14 +225,13 @@ with \
 as \
     strings_file \
 :
-    new_strings = strings_file.open_new()
     for line in strings_file.open_old() :
         match = re.search(r"name=\"app_name\">(.+)</", line)
         if match != None :
             line = line[:match.start(1)] + escape_xml(main_title) + line[match.end(1):]
             strings_file.set_replaced()
         #end if
-        new_strings.write(line)
+        strings_file.write(line)
     #end for
     strings_file.close()
 #end with
@@ -247,10 +244,9 @@ if match != None :
     as \
         manifest_file \
     :
-        new_manifest = manifest_file.open_new()
         for line in manifest_file.open_old() :
             if line.find("<application") >= 0 :
-                new_manifest.write \
+                manifest_file.write \
                   (
                         "    <uses-sdk\n        android:minSdkVersion=\"%s\"\n    />\n"
                     %
@@ -258,7 +254,7 @@ if match != None :
                   )
                 manifest_file.set_replaced()
             #end if
-            new_manifest.write(line)
+            manifest_file.write(line)
         #end for
         manifest_file.close()
     #end with
