@@ -28,6 +28,10 @@
 #         and non-letter/digits are allowed. Defaults to the main class name
 #         if omitted.
 #
+#     --ndk
+#         if specified, then Git exclusions will be added for object
+#         files produced by NDK builds.
+#
 #     --project-name=name
 #         the name for the generated .apk file.
 #
@@ -140,7 +144,7 @@ opts, args = getopt.getopt \
   (
     sys.argv[1:],
     "",
-    ["main-class=", "main-title=", "project-name=", "target=",]
+    ["main-class=", "main-title=", "ndk", "project-name=", "target=",]
   )
 if len(args) != 1 :
     raise getopt.GetoptError("need exactly one arg, the pathname for the project directory")
@@ -150,6 +154,7 @@ main_class = None
 main_title = None
 project_name = None
 target = None
+ndk_build = False
 for key, val in opts :
     if key == "--main-class" :
         if main_class != None :
@@ -161,6 +166,8 @@ for key, val in opts :
             raise getopt.GetoptError("can only specify one --main-title")
         #end if
         main_title = val
+    elif key == "--ndk" :
+        ndk_build = True
     elif key == "--project-name" :
         if project_name != None :
             raise getopt.GetoptError("can only specify one --project-name")
@@ -269,9 +276,19 @@ for \
     exclude \
 in \
     (
-        "/bin",
-        "/gen",
-        "/local.properties",
+        (
+            "/bin",
+            "/gen",
+            "/local.properties",
+        )
+    +
+        (
+            (),
+            (
+                "/obj/",
+                "/libs/",
+            ),
+        )[ndk_build]
     ) \
 :
     gitignore.write(exclude + "\n")
