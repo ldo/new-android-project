@@ -37,8 +37,9 @@
 # corresponding to the levels of the package prefix, but again, there is
 # no need for this.
 #
-# The script also creates a .gitignore to prevent unneeded stuff going
-# into version control.
+# The script also puts a uses-sdk tag with a minSdkVersion tag corresponding
+# to the target API level into the manifest, and creates a .gitignore to
+# prevent unneeded stuff going into version control.
 #
 # Created by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #-
@@ -55,7 +56,8 @@ android_cmd = "tools/android"
   # relative path to android cmd within SDK root
 src_dir = "src"
   # top-level source subdirectory in a new project
-strings_file = "res/values/strings.xml"
+manifest_filename = "AndroidManifest.xml"
+strings_filename = "res/values/strings.xml"
 
 class FileReplacer :
     """context manager to handle modifications to files."""
@@ -114,8 +116,8 @@ class FileReplacer :
             #end if
             try :
                 os.unlink(self.new_filename)
-            except OSError as Failed :
-                if Failed.errno != errno.ENOENT :
+            except OSError as failed :
+                if failed.errno != errno.ENOENT :
                     raise
                 #end if
             #end try
@@ -221,7 +223,7 @@ sys.stderr.write("rmdir -p %s\n" % deletedir) # debug
 os.removedirs(deletedir)
 
 with \
-    FileReplacer(os.path.join(project_dir, strings_file), "app_name string") \
+    FileReplacer(os.path.join(project_dir, strings_filename), "app_name string") \
 as \
     strings_file \
 :
@@ -236,6 +238,33 @@ as \
     #end for
     strings_file.close()
 #end with
+
+match = re.search(r"^android-(\d+)$", target)
+if match != None :
+    sdk_version = match.group(1)
+    with \
+        FileReplacer(os.path.join(project_dir, manifest_filename), "<application> tag") \
+    as \
+        manifest_file \
+    :
+        new_manifest = manifest_file.open_new()
+        for line in manifest_file.open_old() :
+            if line.find("<application") >= 0 :
+                new_manifest.write \
+                  (
+                        "    <uses-sdk\n        android:minSdkVersion=\"%s\"\n    />\n"
+                    %
+                        sdk_version
+                  )
+                manifest_file.set_replaced()
+            #end if
+            new_manifest.write(line)
+        #end for
+        manifest_file.close()
+    #end with
+else :
+    sys.stderr.write("warning: cannot determine SDK version from target %s\n" % repr(target))
+#end if
 
 # generate a .gitignore to avoid putting build-generated and Google-recommended files
 # under version control
