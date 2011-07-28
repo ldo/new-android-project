@@ -28,12 +28,21 @@
 #         and non-letter/digits are allowed. Defaults to the main class name
 #         if omitted.
 #
-#     --ndk
-#         (optional) if specified, then Git exclusions will be added for
-#         object files produced by NDK builds.
-#
 #     --project-name=name
 #         the name for the generated .apk file.
+#
+#     --ndk
+#         (optional) if specified, then Git exclusions will be added for
+#         object files produced by NDK builds. Specify together with
+#         --custombuild to enable one-step building of both Java and
+#         native code.
+#
+#     --custombuild
+#         (optional) if specified, then build.xml will be customized
+#         for easier one-step package signing and installation. If
+#         specified together with --ndk, then “ant compile” will also
+#         automatically build the native code, and “ant clean” will
+#         also automatically get rid of generated native code.
 #
 # Google's "android" tool forces the title of the main activity
 # to be the same as the class name, but there is no requirement for this.
@@ -62,6 +71,7 @@ src_dir = "src"
   # top-level source subdirectory in a new project
 manifest_filename = "AndroidManifest.xml"
 strings_filename = "res/values/strings.xml"
+keystore_filename = "keystore.properties"
 
 class FileReplacer :
     """context manager to handle modifications to files."""
@@ -145,7 +155,7 @@ opts, args = getopt.getopt \
   (
     sys.argv[1:],
     "",
-    ["main-class=", "main-title=", "ndk", "project-name=", "target=",]
+    ["custombuild", "main-class=", "main-title=", "ndk", "project-name=", "target=",]
   )
 if len(args) != 1 :
     raise getopt.GetoptError("need exactly one arg, the pathname for the project directory")
@@ -156,8 +166,11 @@ main_title = None
 project_name = None
 target = None
 ndk_build = False
+custom_build = False
 for key, val in opts :
-    if key == "--main-class" :
+    if key == "--custombuild" :
+        custom_build = True
+    elif key == "--main-class" :
         if main_class != None :
             raise getopt.GetoptError("can only specify one --main-class")
         #end if
@@ -193,6 +206,17 @@ if os.path.exists(project_dir) and len(os.listdir(project_dir)) != 0 :
   # check for existence rather than isdir because android tool returns success
   # after failing to create project if non-directory with that name already exists
     raise getopt.GetoptError("directory %s exists and is not empty" % project_dir)
+#end if
+
+if custom_build :
+    if (
+        not os.path.isfile
+          (
+            os.path.join(os.path.split(os.path.abspath(project_dir))[0], keystore_filename)
+          )
+    ) :
+        raise getopt.GetoptError("%s must exist in parent dir for custom build" % keystore_filename)
+    #end if
 #end if
 
 status = subprocess.Popen \
@@ -270,6 +294,119 @@ else :
     sys.stderr.write("warning: cannot determine SDK version from target %s\n" % repr(target))
 #end if
 
+if custom_build :
+    with \
+        FileReplacer(os.path.join(project_dir, "build.xml"), "build.xml markers", 2 + 1 * int(ndk_build)) \
+    as \
+        build_file \
+    :
+        for line in build_file.open_old() :
+            after = ""
+            if line.find("\"local.properties\"") >= 0 :
+                after = "    <property file=\"%s\" />\n" % keystore_filename
+                build_file.set_replaced()
+            elif ndk_build and line.find("pre_setup.xml") >= 0 :
+                after = \
+                    (
+                        "    <target name=\"clean\" description=\"Removes output files created by other targets.\">\n"
+                        "        <delete dir=\"${out.absolute.dir}\" verbose=\"${verbose}\" />\n"
+                        "        <delete dir=\"${gen.absolute.dir}\" verbose=\"${verbose}\" />\n"
+                        "        <delete dir=\"${native.libs.dir}\" verbose=\"${verbose}\" />\n"
+                        "        <delete dir=\"obj\" verbose=\"${verbose}\" />\n"
+                        "    </target>\n"
+                        "\n"
+                        "    <target name=\"-pre-build\">\n"
+                        "        <exec executable=\"${ndk.dir}/ndk-build\"/>\n"
+                        "    </target>\n"
+                    )
+                build_file.set_replaced()
+            elif line.find("<!-- Execute the Android Setup task") >= 0 :
+                build_file.write \
+                    (
+                        "    <target name=\"signed\" depends=\"-package-release\">\n"
+                        "        <signjar\n"
+                        "            keystore=\"${keystore.path}\" alias=\"${keystore.alias}\" storepass=\"${keystore.password}\"\n"
+                        "            jar=\"bin/${out.projname}-unsigned.apk\"\n"
+                        "            signedjar=\"bin/${out.projname}-unaligned.apk\"\n"
+                        "            verbose=\"true\"\n"
+                        "        />\n"
+                        "        <exec executable=\"${sdk.dir}/tools/zipalign\">\n"
+                        "            <arg value=\"-f\"/>\n"
+                        "            <arg value=\"-v\"/>\n"
+                        "            <arg value=\"4\"/>\n"
+                        "            <arg value=\"bin/${out.projname}-unaligned.apk\"/>\n"
+                        "            <arg value=\"bin/${out.projname}.apk\"/>\n"
+                        "        </exec>\n"
+                        "    </target>\n"
+                        "\n"
+                        "    <target name=\"install\" depends=\"signed\">\n"
+                        "        <exec executable=\"${sdk.dir}/platform-tools/adb\">\n"
+                        "            <arg value=\"install\"/>\n"
+                        "            <arg value=\"-r\"/>\n"
+                        "            <arg value=\"bin/${out.projname}.apk\"/>\n"
+                        "        </exec>\n"
+                        "    </target>\n"
+                        "\n"
+                        "    <target name=\"help\">\n"
+                        "        <!-- displays starts at col 13\n"
+                        "              |13                                                              80| -->\n"
+                        "        <echo>Custom Android Ant Build. Available targets:</echo>\n"
+                        "        <echo>   help:      Displays this help.</echo>\n"
+                        "        <echo>   clean:     Removes output files created by other targets.</echo>\n"
+                        "        <echo>   compile:   Compiles project's .java files into .class files.</echo>\n"
+                        "        <echo>   release:   Builds the application. The generated apk file must be</echo>\n"
+                        "        <echo>              signed before it is published.</echo>\n"
+                        "        <echo>   signed:    Builds the application and signs it with your key.</echo>\n"
+                        "        <echo>   install:   Installs/reinstalls the signed package onto a running</echo>\n"
+                        "        <echo>              emulator or device.</echo>\n"
+                        "        <echo>              If the application was previously installed, the</echo>\n"
+                        "        <echo>              signatures must match.</echo>\n"
+                        "        <echo>   uninstall: Uninstalls the application from a running emulator or</echo>\n"
+                        "        <echo>              device.</echo>\n"
+                        "    </target>\n"
+                    )
+                build_file.set_replaced()
+            #end if
+            build_file.write(line + after)
+        #end for
+        build_file.close()
+    #end with
+    omit = \
+        (
+            "how the release builds are signed",
+            "the following properties:",
+            "'key.store'",
+            "'key.alias'",
+            "password will be asked",
+        )
+    with \
+        FileReplacer(os.path.join(project_dir, "build.properties"), "build props", len(omit)) \
+    as \
+        props_file \
+    :
+        for line in props_file.open_old() :
+            if len(omit) != 0 :
+                if line.find(omit[0]) >= 0 :
+                    sys.stderr.write("found build-props line %s\n" % repr(omit[0])) # debug
+                    props_file.set_replaced()
+                    line = ""
+                    omit = omit[1:]
+                    if len(omit) == 0 :
+                        props_file.write("out.projname=" + project_name + "\n")
+                    #end if
+                #end if
+            #end if
+            props_file.write(line)
+        #end for
+        props_file.close()
+    #end with
+    os.symlink \
+      (
+        "../" + keystore_filename,
+        os.path.join(project_dir, keystore_filename)
+      )
+#end if
+
 # generate a .gitignore to avoid putting build-generated and Google-recommended files
 # under version control
 gitignore = open(os.path.join(project_dir, ".gitignore"), "w")
@@ -290,6 +427,13 @@ in \
                 "/libs/",
             ),
         )[ndk_build]
+    +
+        (
+            (),
+            (
+                keystore_filename,
+            )
+        )[custom_build]
     ) \
 :
     gitignore.write(exclude + "\n")
