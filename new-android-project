@@ -66,12 +66,13 @@ strings_filename = "res/values/strings.xml"
 class FileReplacer :
     """context manager to handle modifications to files."""
 
-    def __init__(self, filename, description) :
+    def __init__(self, filename, description, max_replaced) :
         self.old_filename = filename
         self.new_filename = filename + "-new"
         self.description = description
         self.newfile = None
-        self.replaced = False
+        self.max_replaced = max_replaced
+        self.replaced = 0
     #end _init__
 
     def open_old(self) :
@@ -90,18 +91,18 @@ class FileReplacer :
 
     def set_replaced(self) :
         """marks that a replacement has successfully occurred. Must
-        be called at least once."""
-        self.replaced = True
+        be called exactly the number of times specified by max_replaced."""
+        self.replaced += 1
     #end set_replaced
 
     def close(self) :
         """closes the new output file and replaces the old file. Call
         this at the end of processing of the file contents. Dies if
-        set_replaced was not called."""
+        set_replaced was not called the right number of times."""
         self.newfile.flush()
         self.newfile.close()
         self.newfile = None
-        if not self.replaced :
+        if self.replaced != self.max_replaced :
             raise getopt.GetoptError \
               (
                 "%s not found in %s" % (self.description, self.old_filename)
@@ -228,7 +229,7 @@ sys.stderr.write("rmdir -p %s\n" % deletedir) # debug
 os.removedirs(deletedir)
 
 with \
-    FileReplacer(os.path.join(project_dir, strings_filename), "app_name string") \
+    FileReplacer(os.path.join(project_dir, strings_filename), "app_name string", 1) \
 as \
     strings_file \
 :
@@ -247,7 +248,7 @@ match = re.search(r"^android-(\d+)$", target)
 if match != None :
     sdk_version = match.group(1)
     with \
-        FileReplacer(os.path.join(project_dir, manifest_filename), "<application> tag") \
+        FileReplacer(os.path.join(project_dir, manifest_filename), "<application> tag", 1) \
     as \
         manifest_file \
     :
