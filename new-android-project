@@ -153,7 +153,6 @@ class FileReplacer :
                 "%s not found in %s" % (self.description, self.old_filename)
               )
         #end if
-        sys.stderr.write("replace %s => %s\n" % (self.new_filename, self.old_filename)) # debug
         os.rename(self.new_filename, self.old_filename)
     #end close
 
@@ -452,7 +451,6 @@ if custom_build :
         for line in props_file.open_old() :
             if len(omit) != 0 :
                 if line.find(omit[0]) >= 0 :
-                    sys.stderr.write("found build-props line %s\n" % repr(omit[0])) # debug
                     props_file.set_replaced()
                     line = ""
                     omit = omit[1:]
