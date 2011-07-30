@@ -159,16 +159,16 @@ standard ``-package-release`` target, as follows::
     <target name="signed" depends="-package-release">
         <signjar
             keystore="${keystore.path}" alias="${keystore.alias}" storepass="${keystore.password}"
-            jar="bin/projname-unsigned.apk"
-            signedjar="bin/projname-unaligned.apk"
+            jar="bin/${ant.project.name}-unsigned.apk"
+            signedjar="bin/${ant.project.name}-unaligned.apk"
             verbose="true"
         />
         <exec executable="${sdk.dir}/tools/zipalign">
             <arg value="-f"/>
             <arg value="-v"/>
             <arg value="4"/>
-            <arg value="bin/projname-unaligned.apk"/>
-            <arg value="bin/projname.apk"/>
+            <arg value="bin/${ant.project.name}-unaligned.apk"/>
+            <arg value="bin/${ant.project.name}.apk"/>
         </exec>
     </target>
 
