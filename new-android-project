@@ -389,16 +389,16 @@ if custom_build :
                         "    <target name=\"signed\" depends=\"-package-release\">\n"
                         "        <signjar\n"
                         "            keystore=\"${keystore.path}\" alias=\"${keystore.alias}\" storepass=\"${keystore.password}\"\n"
-                        "            jar=\"bin/${out.projname}-unsigned.apk\"\n"
-                        "            signedjar=\"bin/${out.projname}-unaligned.apk\"\n"
+                        "            jar=\"bin/${ant.project.name}-unsigned.apk\"\n"
+                        "            signedjar=\"bin/${ant.project.name}-unaligned.apk\"\n"
                         "            verbose=\"true\"\n"
                         "        />\n"
                         "        <exec executable=\"${sdk.dir}/tools/zipalign\">\n"
                         "            <arg value=\"-f\"/>\n"
                         "            <arg value=\"-v\"/>\n"
                         "            <arg value=\"4\"/>\n"
-                        "            <arg value=\"bin/${out.projname}-unaligned.apk\"/>\n"
-                        "            <arg value=\"bin/${out.projname}.apk\"/>\n"
+                        "            <arg value=\"bin/${ant.project.name}-unaligned.apk\"/>\n"
+                        "            <arg value=\"bin/${ant.project.name}.apk\"/>\n"
                         "        </exec>\n"
                         "    </target>\n"
                         "\n"
@@ -406,7 +406,7 @@ if custom_build :
                         "        <exec executable=\"${sdk.dir}/platform-tools/adb\">\n"
                         "            <arg value=\"install\"/>\n"
                         "            <arg value=\"-r\"/>\n"
-                        "            <arg value=\"bin/${out.projname}.apk\"/>\n"
+                        "            <arg value=\"bin/${ant.project.name}.apk\"/>\n"
                         "        </exec>\n"
                         "    </target>\n"
                         "\n"
@@ -454,9 +454,6 @@ if custom_build :
                     props_file.set_replaced()
                     line = ""
                     omit = omit[1:]
-                    if len(omit) == 0 :
-                        props_file.write("out.projname=" + project_name + "\n")
-                    #end if
                 #end if
             #end if
             props_file.write(line)
