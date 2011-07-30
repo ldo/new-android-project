@@ -489,8 +489,8 @@ for \
 in \
     (
         (
-            "/bin",
-            "/gen",
+            "/bin/",
+            "/gen/",
             "/" + sdk_props_filename,
         )
     +
@@ -505,7 +505,7 @@ in \
         (
             (),
             (
-                keystore_props_filename,
+                "/" + keystore_props_filename,
             )
         )[custom_build]
     ) \
