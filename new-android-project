@@ -14,10 +14,10 @@
 # where path is the project directory (will be created if it doesn't exist)
 # and the options (all required unless otherwise stated) are
 #
-#     --target=api-target
-#         specifies the Android API level to build for, e.g.
-#         "--target=android-7" for API level 7 (Android 2.1),
-#         "--target=android-8" for API level 8 (Android 2.2).
+#     --api-level=level
+#         specifies the Android API level to build for, as either an
+#         integer, code name or Android version--see the definition of
+#         api_levels, below, for the recognized values.
 #
 #     --main-class=name
 #         the fully-qualified name (with package prefix) of the main
@@ -25,17 +25,17 @@
 #
 #     --main-title=title
 #         the user-visible title text for the main activity. Spaces
-#         and non-letter/digits are allowed. Defaults to the main class name
-#         if omitted.
+#         and non-letter/digits are allowed. Defaults to the main
+#         class name if omitted.
 #
 #     --project-name=name
 #         the name for the generated .apk file.
 #
 #     --ndk
-#         (optional) if specified, then Git exclusions will be added for
-#         object files produced by NDK builds. Specify together with
-#         --custombuild to enable one-step building of both Java and
-#         native code.
+#         (optional) if specified, then Git exclusions will be added
+#         for object files produced by NDK builds. Specify together
+#         with --custombuild to enable one-step building of both Java
+#         and native code.
 #
 #     --custombuild
 #         (optional) if specified, then build.xml will be customized
@@ -45,11 +45,11 @@
 #         native code, and “ant clean” will also automatically get rid
 #         of generated native code.
 #
-# Google's "android" tool forces the title of the main activity
-# to be the same as the class name, but there is no requirement for this.
+# Google's "android" tool forces the title of the main activity to be
+# the same as the class name, but there is no requirement for this.
 # It also creates a deeply-nested hierarchy of source subdirectories
-# corresponding to the levels of the package prefix, but again, there is
-# no need for this.
+# corresponding to the levels of the package prefix, but again, there
+# is no need for this.
 #
 # The script also puts a uses-sdk tag with a minSdkVersion tag
 # corresponding to the target API level into the manifest, and creates a
@@ -107,6 +107,25 @@ manifest_filename = "AndroidManifest.xml"
 strings_filename = "res/values/strings.xml"
 sdk_props_filename = "local.properties"
 keystore_props_filename = "keystore.properties"
+
+api_levels = \
+    (
+    # api level, code name, Android version
+        # (1, "base", "1.0"),
+        # (2, "base_1_1", "1.1"),
+        # above no longer supported by current SDK
+        (3, "cupcake", "1.5"),
+        (4, "donut", "1.6"),
+        (5, "eclair", "2.0"),
+        (6, "eclair_0_1", "2.0.1"),
+        (7, "eclair_mr1", "2.1"),
+        (8, "froyo", "2.2"),
+        (9, "gingerbread", "2.3"),
+        (10, "gingerbread_mr1", "2.3.3"),
+        (11, "honeycomb", "3.0"),
+        (12, "honeycomb_mr1", "3.1"),
+        (13, "honeycomb_mr2", "3.2"),
+    )
 
 class FileReplacer :
     """context manager to handle modifications to files."""
@@ -181,7 +200,7 @@ opts, args = getopt.getopt \
   (
     sys.argv[1:],
     "",
-    ["custombuild", "main-class=", "main-title=", "ndk", "project-name=", "target=",]
+    ["api-level=","custombuild", "main-class=", "main-title=", "ndk", "project-name="]
   )
 if len(args) != 1 :
     raise getopt.GetoptError("need exactly one arg, the pathname for the project directory")
@@ -190,11 +209,32 @@ project_dir = args[0]
 main_class = None
 main_title = None
 project_name = None
-target = None
+api_level = None
 ndk_build = False
 custom_build = False
 for key, val in opts :
-    if key == "--custombuild" :
+    if key == "--api-level" :
+        if api_level != None :
+            raise getopt.GetoptError("can only specify one --api")
+        #end if
+        if re.search(r"^\d+$", val) != None :
+            val = int(val)
+            col = 0
+        elif re.search(r"^\d+\.\d+$", val) != None :
+            col = 2
+        else :
+            col = 1
+        #end if
+        for entry in api_levels :
+            if val == entry[col] :
+                api_level = entry[0]
+                break
+            #end if
+        #end for
+        if api_level == None :
+            raise getopt.GetoptError("unrecognized --api-level value %s" % repr(val))
+        #end if
+    elif key == "--custombuild" :
         custom_build = True
     elif key == "--main-class" :
         if main_class != None :
@@ -213,15 +253,10 @@ for key, val in opts :
             raise getopt.GetoptError("can only specify one --project-name")
         #end if
         project_name = val
-    elif key == "--target" :
-        if target != None :
-            raise getopt.GetoptError("can only specify one --target")
-        #end if
-        target = val
     #end if
 #end for
-if main_class == None or project_name == None or target == None :
-    raise getopt.GetoptError("--main-class, --project-name and --target are required")
+if main_class == None or project_name == None or api_level == None :
+    raise getopt.GetoptError("--main-class, --project-name and --api are required")
 #end if
 package_name, class_name = main_class.rsplit(".", 1)
 if main_title == None :
@@ -278,7 +313,7 @@ status = subprocess.Popen \
     args =
         [
             os.path.join(android_root, android_cmd), "create", "project",
-            "--target", target,
+            "--target", "android-%d" % api_level,
             "--package", package_name,
             "--name", project_name,
             "--activity", class_name,
@@ -322,31 +357,25 @@ as \
     strings_file.close()
 #end with
 
-match = re.search(r"^android-(\d+)$", target)
-if match != None :
-    sdk_version = match.group(1)
-    with \
-        FileReplacer(os.path.join(project_dir, manifest_filename), "<application> tag", 1) \
-    as \
-        manifest_file \
-    :
-        for line in manifest_file.open_old() :
-            if line.find("<application") >= 0 :
-                manifest_file.write \
-                  (
-                        "    <uses-sdk\n        android:minSdkVersion=\"%s\"\n    />\n"
-                    %
-                        sdk_version
-                  )
-                manifest_file.set_replaced()
-            #end if
-            manifest_file.write(line)
-        #end for
-        manifest_file.close()
-    #end with
-else :
-    sys.stderr.write("warning: cannot determine SDK version from target %s\n" % repr(target))
-#end if
+with \
+    FileReplacer(os.path.join(project_dir, manifest_filename), "<application> tag", 1) \
+as \
+    manifest_file \
+:
+    for line in manifest_file.open_old() :
+        if line.find("<application") >= 0 :
+            manifest_file.write \
+              (
+                    "    <uses-sdk\n        android:minSdkVersion=\"%s\"\n    />\n"
+                %
+                    api_level
+              )
+            manifest_file.set_replaced()
+        #end if
+        manifest_file.write(line)
+    #end for
+    manifest_file.close()
+#end with
 
 if custom_build :
     with \
