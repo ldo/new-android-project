@@ -73,13 +73,15 @@
 # symlinked into the project directory to avoid keeping multiple copies
 # of it around.
 #
-# If the parent directory contains a local.properties file which
-# defines the sdk.dir property to point to the SDK directory, then
-# a symlink to this will be put in place of the local.properties file
-# in the project directory. This way, local.properties need only be
-# updated in one place if you relocate the SDK. Also, if this file
-# exists, its definition of sdk.dir will be used in place of the
-# ANDROID_SDK_ROOT environment variable, which need not be specified.
+# If the parent directory contains a local.properties file which defines
+# the sdk.dir property to point to the SDK directory and (for native
+# builds) the ndk.dir property to point to the NDK directory, then a
+# symlink to this will be put in place of the local.properties file in
+# the project directory. This way, local.properties need only be updated
+# in one place if you relocate the SDK or NDK. Also, if this file
+# exists, its definitions of sdk.dir and ndk.dir will be used in place
+# of the ANDROID_SDK_ROOT and ANDROID_NDK_ROOT environment variables,
+# which need not be specified.
 #
 # Copyright 2011 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #
