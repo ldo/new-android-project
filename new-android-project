@@ -2,10 +2,15 @@
 #+
 # Wrapper around "android create project" which gives nicer
 # defaults for some project settings. First of all, define the
-# ANDROID_ROOT environment variable to point to the top-level directory
-# where you installed the Android SDK. E.g.
+# ANDROID_SDK_ROOT environment variable to point to the top-level directory
+# where you installed the Android SDK, e.g.
 #
-#     export ANDROID_ROOT=/path/to/android-sdk-linux_x86
+#     export ANDROID_SDK_ROOT=/path/to/android-sdk-linux_x86
+#
+# If you're doing an NDK build, then you also need to point ANDROID_NDK_ROOT
+# at the top-level directory where you installed the Android NDK, e.g.
+#
+#     export ANDROID_NDK_ROOT=/path/to/android-ndk
 #
 # Then invoke this script as follows:
 #
@@ -74,7 +79,7 @@
 # in the project directory. This way, local.properties need only be
 # updated in one place if you relocate the SDK. Also, if this file
 # exists, its definition of sdk.dir will be used in place of the
-# ANDROID_ROOT environment variable, which need not be specified.
+# ANDROID_SDK_ROOT environment variable, which need not be specified.
 #
 # Copyright 2011 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #
@@ -101,6 +106,8 @@ import getopt
 
 android_cmd = "tools/android"
   # relative path to android cmd within SDK root
+ndk_build_cmd = "ndk-build"
+  # relative path within NDK root
 src_dir = "src"
   # top-level source subdirectory in a new project
 manifest_filename = "AndroidManifest.xml"
@@ -270,30 +277,51 @@ if os.path.exists(project_dir) and len(os.listdir(project_dir)) != 0 :
 #end if
 
 parent_dir = os.path.split(os.path.abspath(project_dir))[0]
-android_root = None
+android_sdk_root = None
+android_ndk_root = None
+got_props_sdk_root = False
+got_props_ndk_root = False
 parent_sdk_props = os.path.join(parent_dir, sdk_props_filename)
-parent_sdk_props_exists = os.path.isfile(parent_sdk_props)
-if parent_sdk_props_exists :
+if os.path.isfile(parent_sdk_props) :
     for line in open(parent_sdk_props, "r") :
         if len(line.strip()) != 0 and not line.startswith("#") :
             key, value = line.rstrip("\n").split("=", 1)
             if key == "sdk.dir" :
-                android_root = value
-                break
+                android_sdk_root = value
+                got_props_sdk_root = True
+            elif key == "ndk.dir" :
+                android_ndk_root = value
+                got_props_ndk_root = True
             #end if
+            if got_props_sdk_root and ndk_build <= got_props_ndk_root :
+                break
         #end if
     #end for
 #end if
-if android_root == None :
-    android_root = os.environ.get("ANDROID_ROOT")
-    if android_root == None :
+if android_sdk_root == None :
+    android_sdk_root = os.environ.get("ANDROID_SDK_ROOT")
+    if android_sdk_root == None :
         raise getopt.GetoptError \
           (
-            "please point ANDROID_ROOT at the root directory of the Android SDK"
+            "please point ANDROID_SDK_ROOT at the root directory of the Android SDK"
           )
     #end if
-    if not os.path.isfile(os.path.join(android_root, android_cmd)) :
-        raise getopt.GetoptError("can't find android cmd in ANDROID_ROOT")
+#end if
+if not os.path.isfile(os.path.join(android_sdk_root, android_cmd)) :
+    raise getopt.GetoptError("can't find %s cmd in ANDROID_SDK_ROOT" % android_cmd)
+#end if
+if ndk_build :
+    if android_ndk_root == None :
+        android_ndk_root = os.environ.get("ANDROID_NDK_ROOT")
+        if android_ndk_root == None :
+            raise getopt.GetoptError \
+              (
+                "please point ANDROID_NDK_ROOT at the root directory of the Android NDK"
+              )
+        #end if
+    #end if
+    if not os.path.isfile(os.path.join(android_ndk_root, ndk_build_cmd)) :
+        raise getopt.GetoptError("can't find %s cmd in ANDROID_NDK_ROOT" % ndk_build_cmd)
     #end if
 #end if
 
@@ -312,7 +340,7 @@ status = subprocess.Popen \
   (
     args =
         [
-            os.path.join(android_root, android_cmd), "create", "project",
+            os.path.join(android_sdk_root, android_cmd), "create", "project",
             "--target", "android-%d" % api_level,
             "--package", package_name,
             "--name", project_name,
@@ -495,7 +523,7 @@ if custom_build :
         os.path.join(project_dir, keystore_props_filename)
       )
 #end if
-if parent_sdk_props_exists :
+if got_props_sdk_root and ndk_build <= got_props_ndk_root :
     # replace multiple copies of file with symlinks to single copy in parent directory
     os.unlink(os.path.join(project_dir, sdk_props_filename))
     os.symlink \
@@ -503,6 +531,25 @@ if parent_sdk_props_exists :
         "../" + sdk_props_filename,
         os.path.join(project_dir, sdk_props_filename)
       )
+else :
+    # write my own props file with right definitions in it
+    props_file = open(os.path.join(project_dir, sdk_props_filename), "w")
+    for \
+        key, value \
+    in \
+        (
+            (("sdk.dir", android_sdk_root),)
+        +
+            (
+                (),
+                (("ndk.dir", android_ndk_root),)
+            )[ndk_build]
+        ) \
+    :
+        props_file.write("%s=%s\n" % (key, value))
+    #end for
+    props_file.flush()
+    props_file.close()
 #end if
 
 # generate a .gitignore to avoid putting build-generated and Google-recommended files
