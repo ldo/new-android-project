@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 #+
-# Wrapper around "android create project" which gives nicer
-# defaults for some project settings. First of all, define the
-# ANDROID_SDK_ROOT environment variable to point to the top-level directory
-# where you installed the Android SDK, e.g.
+# Wrapper around "android create project" which gives nicer defaults
+# for some project settings. First of all, define the ANDROID_SDK_ROOT
+# environment variable to point to the top-level directory where you
+# installed the Android SDK (release 14 or later), e.g.
 #
 #     export ANDROID_SDK_ROOT=/path/to/android-sdk-linux_x86
 #
@@ -178,7 +178,7 @@ class FileReplacer :
         if self.replaced != self.max_replaced :
             raise getopt.GetoptError \
               (
-                "%s not found in %s" % (self.description, self.old_filename)
+                "%s (%d) not found in %s" % (self.description, self.max_replaced - self.replaced, self.old_filename)
               )
         #end if
         os.rename(self.new_filename, self.old_filename)
@@ -409,7 +409,7 @@ as \
 
 if custom_build :
     with \
-        FileReplacer(os.path.join(project_dir, "build.xml"), "build.xml markers", 2 + 3 * int(ndk_build)) \
+        FileReplacer(os.path.join(project_dir, "build.xml"), "build.xml markers", 3 + 3 * int(ndk_build)) \
     as \
         build_file \
     :
@@ -421,10 +421,10 @@ if custom_build :
         for line in build_file.open_old() :
             after = ""
             if line.find("\"%s\"" % sdk_props_filename) >= 0 :
-                after = "    <property file=\"%s\" />\n" % keystore_props_filename
+                after = "    <loadproperties srcFile=\"%s\" />\n" % keystore_props_filename
                 build_file.set_replaced()
-            elif ndk_build and line.find("pre_setup.xml") >= 0 :
-                after = \
+            elif ndk_build and line.find("<!-- quick check on sdk.dir") >= 0 :
+                build_file.write \
                     (
                         "\n    <target name=\"clean\" description=\"Removes output files created by other targets.\">\n"
                         "        <delete dir=\"${out.absolute.dir}\" verbose=\"${verbose}\" />\n"
@@ -435,29 +435,29 @@ if custom_build :
                         "\n"
                         "    <target name=\"-pre-build\">\n"
                         "        <exec executable=\"${ndk.dir}/ndk-build\"/>\n"
-                        "    </target>"
+                        "    </target>\n"
                     )
                 build_file.set_replaced()
             elif ndk_build and len(empty_prebuild) != 0 and line.find(empty_prebuild[0]) >= 0 :
                 empty_prebuild = empty_prebuild[1:]
                 line = ""
                 build_file.set_replaced()
-            elif line.find("<!-- Execute the Android Setup task") >= 0 :
+            elif line.find("<!-- Import the actual build file.") >= 0 :
                 build_file.write \
                     (
-                        "    <target name=\"signed\" depends=\"-package-release\">\n"
+                        "    <target name=\"signed\" depends=\"-set-release-mode, -package\">\n"
                         "        <signjar\n"
                         "            keystore=\"${keystore.path}\" alias=\"${keystore.alias}\" storepass=\"${keystore.password}\"\n"
-                        "            jar=\"bin/${ant.project.name}-unsigned.apk\"\n"
-                        "            signedjar=\"bin/${ant.project.name}-unaligned.apk\"\n"
+                        "            jar=\"${out.packaged.file}\"\n"
+                        "            signedjar=\"${out.unaligned.file}\"\n"
                         "            verbose=\"true\"\n"
                         "        />\n"
                         "        <exec executable=\"${sdk.dir}/tools/zipalign\">\n"
                         "            <arg value=\"-f\"/>\n"
                         "            <arg value=\"-v\"/>\n"
                         "            <arg value=\"4\"/>\n"
-                        "            <arg value=\"bin/${ant.project.name}-unaligned.apk\"/>\n"
-                        "            <arg value=\"bin/${ant.project.name}.apk\"/>\n"
+                        "            <arg value=\"${out.unaligned.file}\"/>\n"
+                        "            <arg value=\"${out.final.file}\"/>\n"
                         "        </exec>\n"
                         "    </target>\n"
                         "\n"
@@ -465,7 +465,7 @@ if custom_build :
                         "        <exec executable=\"${sdk.dir}/platform-tools/adb\">\n"
                         "            <arg value=\"install\"/>\n"
                         "            <arg value=\"-r\"/>\n"
-                        "            <arg value=\"bin/${ant.project.name}.apk\"/>\n"
+                        "            <arg value=\"${out.final.file}\"/>\n"
                         "        </exec>\n"
                         "    </target>\n"
                         "\n"
@@ -475,7 +475,6 @@ if custom_build :
                         "        <echo>Custom Android Ant Build. Available targets:</echo>\n"
                         "        <echo>   help:      Displays this help.</echo>\n"
                         "        <echo>   clean:     Removes output files created by other targets.</echo>\n"
-                        "        <echo>   compile:   Compiles project's .java files into .class files.</echo>\n"
                         "        <echo>   release:   Builds the application. The generated apk file must be</echo>\n"
                         "        <echo>              signed before it is published.</echo>\n"
                         "        <echo>   signed:    Builds the application and signs it with your key.</echo>\n"
@@ -488,6 +487,10 @@ if custom_build :
                         "    </target>\n"
                         "\n"
                     )
+                build_file.set_replaced()
+            elif line.find("<!-- version-tag: 1 -->") >= 0 :
+                match = re.search(r"^(\s*\<\!\-\- version\-tag: )(\d+)( \-\-\>\s*)$", line)
+                line = match.group(1) + "custom" + match.group(3)
                 build_file.set_replaced()
             #end if
             build_file.write(line + after)
@@ -503,7 +506,7 @@ if custom_build :
             "password will be asked",
         )
     with \
-        FileReplacer(os.path.join(project_dir, "build.properties"), "build props", len(omit)) \
+        FileReplacer(os.path.join(project_dir, "ant.properties"), "build props", len(omit)) \
     as \
         props_file \
     :
