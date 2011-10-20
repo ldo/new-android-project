@@ -40,10 +40,10 @@ within ``src/``. For a larger project, you might group things into
 subdirectories say, one level down. But the choice is yours, you don’t
 have to be consistent with the package hierarchy names.
 
-Manifest ``minSdkVersion`` vs ``build.xml``/``default.properties`` target
+Manifest ``minSdkVersion`` vs ``build.xml``/``project.properties`` target 
 =========================================================================
 
-The ``default.properties`` file referenced from ``build.xml`` defines the
+The ``project.properties`` file referenced from ``build.xml`` defines the
 “``target``” property, which specifies the version of the Android API to
 use to build your app. In the manifest there is the
 `<uses-sdk> <http://developer.android.com/guide/topics/manifest/uses-sdk-element.html>`_ tag,
@@ -159,16 +159,16 @@ standard ``-package-release`` target, as follows::
     <target name="signed" depends="-package-release">
         <signjar
             keystore="${keystore.path}" alias="${keystore.alias}" storepass="${keystore.password}"
-            jar="bin/${ant.project.name}-unsigned.apk"
-            signedjar="bin/${ant.project.name}-unaligned.apk"
+            jar="${out.packaged.file}"
+            signedjar="${out.unaligned.file}"
             verbose="true"
         />
         <exec executable="${sdk.dir}/tools/zipalign">
             <arg value="-f"/>
             <arg value="-v"/>
             <arg value="4"/>
-            <arg value="bin/${ant.project.name}-unaligned.apk"/>
-            <arg value="bin/${ant.project.name}.apk"/>
+            <arg value="${out.unaligned.file}"/>
+            <arg value="${out.final.file}"/>
         </exec>
     </target>
 
