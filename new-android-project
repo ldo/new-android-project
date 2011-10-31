@@ -134,6 +134,7 @@ api_levels = \
         (11, "honeycomb", "3.0"),
         (12, "honeycomb_mr1", "3.1"),
         (13, "honeycomb_mr2", "3.2"),
+        (14, "ice_cream_sandwich", "4.0"),
     )
 
 class FileReplacer :
