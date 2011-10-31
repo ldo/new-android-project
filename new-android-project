@@ -530,6 +530,36 @@ if custom_build :
         os.path.join(project_dir, keystore_props_filename)
       )
 #end if
+
+for parent, dirnames, filenames in os.walk(project_dir) :
+    for filename in filenames :
+        if filename.endswith(".xml") :
+            sys.stderr.write("strip trailing blanks from %s\n" % filename) # debug
+            with \
+                FileReplacer(os.path.join(parent, filename), filename + " trailing blanks", 0) \
+            as \
+                xml_file \
+            :
+                nr_empty_lines = 0 # for discarding empty lines at end of file
+                for line in xml_file.open_old() :
+                    if line.endswith("\n") :
+                        line, nl = line[:-1], line[-1:]
+                    else :
+                        nl = ""
+                    #end if
+                    if len(line) != 0 :
+                        xml_file.write(("\n" * nr_empty_lines) + line.rstrip(" ") + nl)
+                        nr_empty_lines = 0
+                    else :
+                        nr_empty_lines += 1
+                    #end if
+                #end for
+                xml_file.close()
+            #end with
+        #end if
+    #end for
+#end for
+
 if got_props_sdk_root and ndk_build <= got_props_ndk_root :
     # replace multiple copies of file with symlinks to single copy in parent directory
     os.unlink(os.path.join(project_dir, sdk_props_filename))
