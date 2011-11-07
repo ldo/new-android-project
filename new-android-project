@@ -50,6 +50,11 @@
 #         native code, and “ant clean” will also automatically get rid
 #         of generated native code.
 #
+#     --nobuildprops
+#         (optional) if specified, then the ant.properties file will
+#         be removed, along with references to it in build.xml. Keeps
+#         things tidier if you don't need it.
+#
 # Google's "android" tool forces the title of the main activity to be
 # the same as the class name, but there is no requirement for this.
 # It also creates a deeply-nested hierarchy of source subdirectories
@@ -115,6 +120,7 @@ src_dir = "src"
 manifest_filename = "AndroidManifest.xml"
 strings_filename = "res/values/strings.xml"
 sdk_props_filename = "local.properties"
+build_props_filename = "ant.properties"
 keystore_props_filename = "keystore.properties"
 
 api_levels = \
@@ -210,7 +216,7 @@ opts, args = getopt.getopt \
   (
     sys.argv[1:],
     "",
-    ["api-level=","custombuild", "main-class=", "main-title=", "ndk", "project-name="]
+    ["api-level=","custombuild", "main-class=", "main-title=", "ndk", "nobuildprops", "project-name="]
   )
 if len(args) != 1 :
     raise getopt.GetoptError("need exactly one arg, the pathname for the project directory")
@@ -221,6 +227,7 @@ main_title = None
 project_name = None
 api_level = None
 ndk_build = False
+remove_build_props = False
 custom_build = False
 for key, val in opts :
     if key == "--api-level" :
@@ -258,6 +265,8 @@ for key, val in opts :
         main_title = val
     elif key == "--ndk" :
         ndk_build = True
+    elif key == "--nobuildprops" :
+        remove_build_props = True
     elif key == "--project-name" :
         if project_name != None :
             raise getopt.GetoptError("can only specify one --project-name")
@@ -529,6 +538,36 @@ if custom_build :
         "../" + keystore_props_filename,
         os.path.join(project_dir, keystore_props_filename)
       )
+#end if
+
+if remove_build_props :
+    with \
+        FileReplacer(os.path.join(project_dir, "build.xml"), "removing buildprops", 2) \
+    as \
+        build_file \
+    :
+        buildprops_ref_start = "<!-- The ant.properties file can be created by you."
+        buildprops_ref_end = "<property file=\"ant.properties\""
+        for line in build_file.open_old() :
+            if buildprops_ref_start != None :
+                if line.find(buildprops_ref_start) >= 0 :
+                    buildprops_ref_start = None
+                    build_file.set_replaced()
+                else :
+                    build_file.write(line)
+                #end if
+            elif buildprops_ref_end != None :
+                if line.find(buildprops_ref_end) >= 0 :
+                    buildprops_ref_end = None
+                    build_file.set_replaced()
+                #end if
+            else :
+                build_file.write(line)
+            #end if
+        #end for
+        build_file.close()
+    #end with
+    os.unlink(os.path.join(project_dir, build_props_filename))
 #end if
 
 for parent, dirnames, filenames in os.walk(project_dir) :
