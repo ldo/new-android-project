@@ -40,8 +40,8 @@ within ``src/``. For a larger project, you might group things into
 subdirectories say, one level down. But the choice is yours, you don’t
 have to be consistent with the package hierarchy names.
 
-Manifest ``minSdkVersion`` vs ``build.xml``/``project.properties`` target 
-=========================================================================
+Manifest ``minSdkVersion/targetSdkVersion`` vs ``build.xml``/``project.properties`` target 
+==========================================================================================
 
 The ``project.properties`` file referenced from ``build.xml`` defines the
 “``target``” property, which specifies the version of the Android API to
@@ -51,8 +51,11 @@ which specifies “minimum” and “target” Android API versions under
 which your app will run.
 
 The two are not automatically kept in sync; it is up to you to manage
-them. Does it make sense for the ``target`` to be different from the
-``minSdkVersion``?
+them. Normally ``target`` would match ``targetSdkVersion``, but you
+would temporarily lower it to ``minSdkVersion`` while doing test
+builds to verify that your main app classes are not making references
+to newer API features that would cause them to fail to load on older
+system versions.
 
 Native Builds
 =============
