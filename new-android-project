@@ -55,6 +55,10 @@
 #         be removed, along with references to it in build.xml. Keeps
 #         things tidier if you don't need it.
 #
+#     --noproguard
+#         (optional) if specified, then proguard.cfg will be removed.
+#         Keeps things tidier if you don't need it.
+#
 # Google's "android" tool forces the title of the main activity to be
 # the same as the class name, but there is no requirement for this.
 # It also creates a deeply-nested hierarchy of source subdirectories
@@ -121,6 +125,7 @@ manifest_filename = "AndroidManifest.xml"
 strings_filename = "res/values/strings.xml"
 sdk_props_filename = "local.properties"
 build_props_filename = "ant.properties"
+proguard_filename = "proguard.cfg"
 keystore_props_filename = "keystore.properties"
 
 api_levels = \
@@ -216,7 +221,7 @@ opts, args = getopt.getopt \
   (
     sys.argv[1:],
     "",
-    ["api-level=","custombuild", "main-class=", "main-title=", "ndk", "nobuildprops", "project-name="]
+    ["api-level=","custombuild", "main-class=", "main-title=", "ndk", "nobuildprops", "noproguard", "project-name="]
   )
 if len(args) != 1 :
     raise getopt.GetoptError("need exactly one arg, the pathname for the project directory")
@@ -228,6 +233,7 @@ project_name = None
 api_level = None
 ndk_build = False
 remove_build_props = False
+remove_proguard = False
 custom_build = False
 for key, val in opts :
     if key == "--api-level" :
@@ -267,6 +273,8 @@ for key, val in opts :
         ndk_build = True
     elif key == "--nobuildprops" :
         remove_build_props = True
+    elif key == "--noproguard" :
+        remove_proguard = True
     elif key == "--project-name" :
         if project_name != None :
             raise getopt.GetoptError("can only specify one --project-name")
@@ -568,6 +576,9 @@ if remove_build_props :
         build_file.close()
     #end with
     os.unlink(os.path.join(project_dir, build_props_filename))
+#end if
+if remove_proguard :
+    os.unlink(os.path.join(project_dir, proguard_filename))
 #end if
 
 for parent, dirnames, filenames in os.walk(project_dir) :
