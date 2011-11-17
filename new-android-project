@@ -65,9 +65,10 @@
 # corresponding to the levels of the package prefix, but again, there
 # is no need for this.
 #
-# The script also puts a uses-sdk tag with a minSdkVersion tag
-# corresponding to the target API level into the manifest, and creates a
-# .gitignore to prevent unneeded stuff going into version control.
+# The script also puts a uses-sdk tag with minSdkVersion and
+# targetSdkVersion tags corresponding to the target API level into the
+# manifest, and creates a .gitignore to prevent unneeded stuff going
+# into version control.
 #
 # The --custombuild option requires that the parent directory contain
 # a keystore.properties file. Its contents look like this:
@@ -414,9 +415,10 @@ as \
         if line.find("<application") >= 0 :
             manifest_file.write \
               (
-                    "    <uses-sdk\n        android:minSdkVersion=\"%s\"\n    />\n"
+                    "    <uses-sdk\n        android:minSdkVersion=\"%(level)s\"\n"
+                    "        android:targetSdkVersion=\"%(level)s\"\n    />\n"
                 %
-                    api_level
+                    {"level" : api_level}
               )
             manifest_file.set_replaced()
         #end if
