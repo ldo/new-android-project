@@ -56,7 +56,7 @@
 #         things tidier if you don't need it.
 #
 #     --noproguard
-#         (optional) if specified, then proguard.cfg will be removed.
+#         (optional) if specified, then proguard-project.txt will be removed.
 #         Keeps things tidier if you don't need it.
 #
 # Google's "android" tool forces the title of the main activity to be
@@ -93,7 +93,7 @@
 # of the ANDROID_SDK_ROOT and ANDROID_NDK_ROOT environment variables,
 # which need not be specified.
 #
-# Copyright 2011 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+# Copyright 2011, 2012 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you
 # may not use this file except in compliance with the License. You may
@@ -126,7 +126,7 @@ manifest_filename = "AndroidManifest.xml"
 strings_filename = "res/values/strings.xml"
 sdk_props_filename = "local.properties"
 build_props_filename = "ant.properties"
-proguard_filename = "proguard.cfg"
+proguard_filename = "proguard-project.txt"
 keystore_props_filename = "keystore.properties"
 
 api_levels = \
