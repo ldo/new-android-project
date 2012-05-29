@@ -132,6 +132,7 @@ keystore_props_filename = "keystore.properties"
 api_levels = \
     (
     # api level, code name, Android version
+    # reference: <http://developer.android.com/reference/android/os/Build.VERSION_CODES.html>
         # (1, "base", "1.0"),
         # (2, "base_1_1", "1.1"),
         # above no longer supported by current SDK
@@ -147,6 +148,7 @@ api_levels = \
         (12, "honeycomb_mr1", "3.1"),
         (13, "honeycomb_mr2", "3.2"),
         (14, "ice_cream_sandwich", "4.0"),
+        (15, "ice_cream_sandwich_mr1", "4.0.3"),
     )
 
 class FileReplacer :
