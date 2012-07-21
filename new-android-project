@@ -451,7 +451,7 @@ if custom_build :
                         "\n    <target name=\"clean\" description=\"Removes output files created by other targets.\">\n"
                         "        <delete dir=\"${out.absolute.dir}\" verbose=\"${verbose}\" />\n"
                         "        <delete dir=\"${gen.absolute.dir}\" verbose=\"${verbose}\" />\n"
-                        "        <delete dir=\"${native.libs.dir}\" verbose=\"${verbose}\" />\n"
+                        "        <delete dir=\"${native.libs.absolute.dir}\" verbose=\"${verbose}\" />\n"
                         "        <delete dir=\"obj\" verbose=\"${verbose}\" />\n"
                         "    </target>\n"
                         "\n"
