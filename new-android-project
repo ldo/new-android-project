@@ -135,11 +135,11 @@ api_levels = \
     # reference: <http://developer.android.com/reference/android/os/Build.VERSION_CODES.html>
         # (1, "base", "1.0"),
         # (2, "base_1_1", "1.1"),
+        # (3, "cupcake", "1.5"),
+        # (4, "donut", "1.6"),
+        # (5, "eclair", "2.0"),
+        # (6, "eclair_0_1", "2.0.1"),
         # above no longer supported by current SDK
-        (3, "cupcake", "1.5"),
-        (4, "donut", "1.6"),
-        (5, "eclair", "2.0"),
-        (6, "eclair_0_1", "2.0.1"),
         (7, "eclair_mr1", "2.1"),
         (8, "froyo", "2.2"),
         (9, "gingerbread", "2.3"),
@@ -149,6 +149,10 @@ api_levels = \
         (13, "honeycomb_mr2", "3.2"),
         (14, "ice_cream_sandwich", "4.0"),
         (15, "ice_cream_sandwich_mr1", "4.0.3"),
+        (16, "jelly_bean", "4.1"),
+        (17, "jelly_bean_mr1", "4.2"),
+        (18, "jelly_bean_mr2", "4.3"),
+        (19, "kitkat", "4.4"),
     )
 
 class FileReplacer :
