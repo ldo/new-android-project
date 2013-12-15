@@ -435,15 +435,10 @@ as \
 
 if custom_build :
     with \
-        FileReplacer(os.path.join(project_dir, "build.xml"), "build.xml markers", 3 + 3 * int(ndk_build)) \
+        FileReplacer(os.path.join(project_dir, "build.xml"), "build.xml markers", 3 + int(ndk_build)) \
     as \
         build_file \
     :
-        empty_prebuild = \
-            (
-                "<target name=\"-pre-build\">",
-                "</target>",
-            )
         for line in build_file.open_old() :
             after = ""
             if line.find("\"%s\"" % sdk_props_filename) >= 0 :
@@ -463,10 +458,6 @@ if custom_build :
                         "        <exec executable=\"${ndk.dir}/ndk-build\"/>\n"
                         "    </target>\n"
                     )
-                build_file.set_replaced()
-            elif ndk_build and len(empty_prebuild) != 0 and line.find(empty_prebuild[0]) >= 0 :
-                empty_prebuild = empty_prebuild[1:]
-                line = ""
                 build_file.set_replaced()
             elif line.find("<!-- Import the actual build file.") >= 0 :
                 build_file.write \
