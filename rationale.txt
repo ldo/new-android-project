@@ -40,7 +40,7 @@ within ``src/``. For a larger project, you might group things into
 subdirectories say, one level down. But the choice is yours, you don’t
 have to be consistent with the package hierarchy names.
 
-Manifest ``minSdkVersion/targetSdkVersion`` vs ``build.xml``/``project.properties`` target 
+Manifest ``minSdkVersion/targetSdkVersion`` vs ``build.xml``/``project.properties`` target
 ==========================================================================================
 
 The ``project.properties`` file referenced from ``build.xml`` defines the
