@@ -466,6 +466,8 @@ if custom_build :
                         "        <property name=\"out.unaligned.file\" location=\"${out.absolute.dir}/${ant.project.name}-release-unaligned.apk\" />\n"
                         "        <signjar\n"
                         "            keystore=\"${keystore.path}\" alias=\"${keystore.alias}\" storepass=\"${keystore.password}\"\n"
+                        "            sigalg=\"SHA1withRSA\"\n"
+                        "            digestalg=\"SHA1\"\n"
                         "            jar=\"${out.packaged.file}\"\n"
                         "            signedjar=\"${out.unaligned.file}\"\n"
                         "            verbose=\"true\"\n"
