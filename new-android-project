@@ -153,6 +153,11 @@ api_levels = \
         (17, "jelly_bean_mr1", "4.2"),
         (18, "jelly_bean_mr2", "4.3"),
         (19, "kitkat", "4.4"),
+        (20, "kitkat_watch", "4.4W"),
+        (21, "lollipop", "5.0"),
+        (22, "lollipop_mr1", "5.1"),
+        (23, "marshmallow", "6.0"),
+        (24, "nougat", "7.0"),
     )
 
 class FileReplacer :
