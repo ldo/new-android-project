@@ -95,8 +95,8 @@
 #
 # Warning: current versions of the Android SDK no longer seem to include
 # zipalign at the path tools/zipalign. Instead, there are different
-# versions in build-tools/«version»/zipalign. So I get around this by
-# symlinking one of them, e.g.
+# versions in build-tools/«version»/zipalign. So you need to get around this
+# by symlinking one of them into the expected place, e.g.
 #     cd $ANDROID_SDK_ROOT/tools
 #     ln -s ../build-tools/24.0.1/zipalign zipalign
 #
