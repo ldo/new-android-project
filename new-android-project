@@ -93,7 +93,14 @@
 # of the ANDROID_SDK_ROOT and ANDROID_NDK_ROOT environment variables,
 # which need not be specified.
 #
-# Copyright 2011, 2012 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
+# Warning: current versions of the Android SDK no longer seem to include
+# zipalign at the path tools/zipalign. Instead, there are different
+# versions in build-tools/«version»/zipalign. So I get around this by
+# symlinking one of them, e.g.
+#     cd $ANDROID_SDK_ROOT/tools
+#     ln -s ../build-tools/23.0.1/zipalign zipalign
+#
+# Copyright 2011-2016 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you
 # may not use this file except in compliance with the License. You may
