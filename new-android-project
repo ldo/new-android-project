@@ -98,7 +98,7 @@
 # versions in build-tools/«version»/zipalign. So I get around this by
 # symlinking one of them, e.g.
 #     cd $ANDROID_SDK_ROOT/tools
-#     ln -s ../build-tools/23.0.1/zipalign zipalign
+#     ln -s ../build-tools/24.0.1/zipalign zipalign
 #
 # Copyright 2011-2016 by Lawrence D'Oliveiro <ldo@geek-central.gen.nz>.
 #
